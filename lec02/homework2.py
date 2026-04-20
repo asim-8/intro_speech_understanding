@@ -22,5 +22,6 @@ def arithmetic(x, y):
             return x * int(y)
         elif isinstance(x, float):
             return x * y
+            
     return 0
 
