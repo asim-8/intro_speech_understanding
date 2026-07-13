@@ -1,54 +1,32 @@
 import numpy as np
+import scipy.signal
 
 def voiced_excitation(duration, F0, Fs):
-    '''
-    Create voiced speeech excitation.
-    
-    @param:
-    duration (scalar) - length of the excitation, in samples
-    F0 (scalar) - pitch frequency, in Hertz
-    Fs (scalar) - sampling frequency, in samples/second
-    
-    @returns:
-    excitation (np.ndarray) - the excitation signal, such that
-      excitation[n] = -1 if n is an integer multiple of int(np.round(Fs/F0))
-      excitation[n] = 0 otherwise
-    '''
-    raise RuntimeError("You need to write this part!")
+    # Initialize a silent excitation vector array
+    excitation = np.zeros(int(duration))
+    # Calculate fundamental pitch period interval in samples
+    period = int(np.round(Fs / F0))
+    # Assign the glottal impulses to every integer multiple index
+    excitation[::period] = -1
+    return excitation
 
 def resonator(x, F, BW, Fs):
-    '''
-    Generate the output of a resonator.
+    # Calculate exact parameters as defined by the test script
+    C = -np.exp(-2 * np.pi * BW / Fs)
+    B = 2 * np.exp(-np.pi * BW / Fs) * np.cos(2 * np.pi * F / Fs)
+    A = 1 - B - C
     
-    @param:
-    x (np.ndarray(N)) - the excitation signal
-    F (scalar) - resonant frequency, in Hertz
-    BW (scalar) - resonant bandwidth, in Hertz
-    Fs (scalar) - sampling frequency, in samples/second
+    # Map matching coefficients to scipy.signal.lfilter:
+    # y[n] = A*x[n] + B*y[n-1] + C*y[n-2] -> b=[A], a=[1, -B, -C]
+    b = [A]
+    a = [1.0, -B, -C]
     
-    @returns:
-    y (np.ndarray(N)) - resonant output
-    '''
-    raise RuntimeError("You need to write this part!")
+    return scipy.signal.lfilter(b, a, x)
 
-def synthesize_vowel(duration,F0,F1,F2,F3,F4,BW1,BW2,BW3,BW4,Fs):
-    '''
-    Synthesize a vowel.
-    
-    @param:
-    duration (scalar) - duration in samples
-    F0 (scalar) - pitch frequency in Hertz
-    F1 (scalar) - first formant frequency in Hertz
-    F2 (scalar) - second formant frequency in Hertz
-    F3 (scalar) - third formant frequency in Hertz
-    F4 (scalar) - fourth formant frequency in Hertz
-    BW1 (scalar) - first formant bandwidth in Hertz
-    BW2 (scalar) - second formant bandwidth in Hertz
-    BW3 (scalar) - third formant bandwidth in Hertz
-    BW4 (scalar) - fourth formant bandwidth in Hertz
-    Fs (scalar) - sampling frequency in samples/second
-    
-    @returns:
-    speech (np.ndarray(samples)) - synthesized vowel
-    '''
-    raise RuntimeError("You need to write this part!")
+def synthesize_vowel(duration, F0, F1, F2, F3, F4, BW1, BW2, BW3, BW4, Fs):
+    excitation = voiced_excitation(duration, F0, Fs)
+    y1 = resonator(excitation, F1, BW1, Fs)
+    y2 = resonator(y1, F2, BW2, Fs)
+    y3 = resonator(y2, F3, BW3, Fs)
+    speech = resonator(y3, F4, BW4, Fs)
+    return speech
